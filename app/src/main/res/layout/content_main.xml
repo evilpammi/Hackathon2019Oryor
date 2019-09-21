@@ -10,44 +10,58 @@
 
     <LinearLayout
         android:id="@+id/linear1"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:id="@+id/imageView"
-            android:layout_width="273dp"
-            android:layout_height="80dp"
+            android:layout_width="match_parent"
+            android:layout_height="110dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="40dp"
-            tools:srcCompat="@drawable/oryor_logo" />
+            android:layout_margin="10dp"
+            android:contentDescription="oryor logo"
+            app:srcCompat="@drawable/img_fda"
+            tools:srcCompat="@drawable/img_fda" />
 
         <LinearLayout
             android:id="@+id/linear2"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="77dp"
             android:orientation="horizontal">
 
             <EditText
                 android:id="@+id/searchInput"
-                android:layout_width="248dp"
+                android:layout_width="232dp"
                 android:layout_height="45dp"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginStart="64dp"
                 android:layout_marginTop="16dp"
                 android:ems="10"
-                android:inputType="text" />
+                android:hint="Enter code"
+                android:inputType="text"
+                android:imeOptions="actionGo"/>
 
-            <Button style="@style/Widget.AppCompat.Button.Borderless"
+            <Button
                 android:id="@+id/btnSearch"
+                style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="45dp"
                 android:layout_height="45dp"
-                android:layout_gravity="right"
+                android:layout_gravity="end"
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="16dp"
-                android:background="@android:drawable/ic_menu_search"/>
+                android:background="@android:drawable/ic_menu_search" />
 
         </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="577dp"
+            android:scrollbars="vertical" />
 
     </LinearLayout>
 
