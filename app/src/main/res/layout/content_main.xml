@@ -12,6 +12,7 @@
         android:id="@+id/linear1"
         android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:background="#E7ECF0"
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -20,7 +21,7 @@
         <ImageView
             android:id="@+id/imageView"
             android:layout_width="match_parent"
-            android:layout_height="110dp"
+            android:layout_height="105dp"
             android:layout_gravity="center_horizontal"
             android:layout_margin="10dp"
             android:contentDescription="oryor logo"
@@ -30,37 +31,61 @@
         <LinearLayout
             android:id="@+id/linear2"
             android:layout_width="match_parent"
-            android:layout_height="77dp"
+            android:layout_height="62dp"
             android:orientation="horizontal">
 
             <EditText
                 android:id="@+id/searchInput"
-                android:layout_width="232dp"
+                android:layout_width="308dp"
                 android:layout_height="45dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginStart="64dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="5dp"
+                android:background="@drawable/box_radius"
+                android:elevation="6dp"
                 android:ems="10"
-                android:hint="Enter code"
+                android:hint="eg. XX-X-XXXXX-Y-YYYY"
+                android:imeOptions="actionGo"
                 android:inputType="text"
-                android:imeOptions="actionGo"/>
+                android:paddingLeft="16dp" />
 
             <Button
                 android:id="@+id/btnSearch"
                 style="@style/Widget.AppCompat.Button.Borderless"
-                android:layout_width="45dp"
-                android:layout_height="45dp"
-                android:layout_gravity="end"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
                 android:layout_marginStart="8dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="5dp"
                 android:background="@android:drawable/ic_menu_search" />
 
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="15dp"
+                android:text="ประวัติการค้นหา"
+                android:textColor="#3C3F41"
+                android:textStyle="bold" />
+
+            <View
+                android:id="@+id/divider"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginRight="10dp"
+                android:background="?android:attr/listDivider" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"
-            android:layout_height="577dp"
+            android:layout_height="513dp"
             android:scrollbars="vertical" />
 
     </LinearLayout>

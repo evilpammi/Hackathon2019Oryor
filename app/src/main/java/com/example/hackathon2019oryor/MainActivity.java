@@ -10,6 +10,27 @@ import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -26,25 +47,6 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.PermissionRequestErrorListener;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
-import android.widget.Toast;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -52,12 +54,28 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
     //FAB
@@ -67,10 +85,13 @@ public class MainActivity extends AppCompatActivity {
 
     // Data variables
     EditText text_input;
-    private ArrayList<String> mMainOryor = new ArrayList<>();
-    private ArrayList<String> mMainName = new ArrayList<>();
-    private ArrayList<String> mMainType = new ArrayList<>();
+    private ArrayList<Oryor> mOryor = new ArrayList<>();
     private String textImage;
+    ListAdapter adapter = new ListAdapter(this, mOryor);
+    RecyclerView recyclerView;
+    private String oryorID;
+    private JSONObject output_json;
+    Button btnSearch;
 
     // Camera and Image variables
     static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -79,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
     static final int REQUEST_IMAGE_GALLERY = 2;
     private Bitmap mSelectedImage;
     private String mCurrentPhotoPath;
+
+    private ProgressBar spinner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,6 +118,9 @@ public class MainActivity extends AppCompatActivity {
         fab_anticlock = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_rotate_anticlock);
 
         text_input = findViewById(R.id.searchInput);
+        btnSearch = findViewById(R.id.btnSearch);
+
+        spinner = findViewById(R.id.progressBar1);
 
         initData();
 
@@ -108,6 +134,16 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Log.d("focus", "focused");
                     showKeyboard();
+                }
+            }
+        });
+
+        btnSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!text_input.getText().equals("")){
+                    oryorID = text_input.getText().toString();
+                    makePost();
                 }
             }
         });
@@ -298,11 +334,11 @@ public class MainActivity extends AppCompatActivity {
                                     String pattern = "(\\d{2}[,.-]{1}\\d{1}[,.-]{1}\\d{5}[,.-]{1}\\d{1}[,.-]{1}\\d{4})";
                                     Pattern r = Pattern.compile(pattern);
                                     Matcher m = r.matcher(textImage);
-                                    if (m.find( )) {
+                                    if (m.find()) {
                                         Log.i("info","Found value: " + m.group(0) );
                                         Log.i("info","Found value: " + m.group(1) );
-//                                        textView.setText(m.group(1));
-                                        showToast(m.group(1));
+                                        oryorID = m.group(1);
+                                        makePost();
                                     }else {
                                         showToast("No Oryor found. Please take a picture again!");
                                     }
@@ -388,40 +424,175 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
         return json;
+    }
 
+    private void makePost() {
+        final TrustManager[] trustManagers = new TrustManager[]{new X509TrustManager() {
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                X509Certificate[] x509Certificates = new X509Certificate[0];
+                return x509Certificates;
+            }
+
+            @Override
+            public void checkServerTrusted(final X509Certificate[] chain,
+                                           final String authType) {
+                Log.i("info", "authType: " + authType);
+            }
+
+            @Override
+            public void checkClientTrusted(final X509Certificate[] chain,
+                                           final String authType) {
+                Log.i("info", "authType: " + authType);
+            }
+        }};
+
+        X509TrustManager x509TrustManager = new X509TrustManager() {
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                X509Certificate[] x509Certificates = new X509Certificate[0];
+                return x509Certificates;
+            }
+
+            @Override
+            public void checkServerTrusted(final X509Certificate[] chain,
+                                           final String authType) {
+                Log.i("info", "authType: " + authType);
+            }
+
+            @Override
+            public void checkClientTrusted(final X509Certificate[] chain,
+                                           final String authType) {
+                Log.i("info", "authType: " + authType);
+            }
+        };
+
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+        try {
+            final String PROTOCOL = "SSL";
+            SSLContext sslContext = SSLContext.getInstance(PROTOCOL);
+            KeyManager[] keyManagers = null;
+            SecureRandom secureRandom = new SecureRandom();
+            sslContext.init(keyManagers, trustManagers, secureRandom);
+            SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        OkHttpClient client = okHttpClientBuilder.build();
+
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("number_src", oryorID)
+                .addFormDataPart("type", "0")
+                .build();
+
+        Request request = new Request.Builder()
+                .url("https://oryor.com/oryor2015/ajax-check-product.php")
+                .post(requestBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(okhttp3.Call call, IOException e) {
+                Log.i("info","Error");
+                Log.i("info",e.getMessage());
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, final Response response) throws IOException {
+                if (response.isSuccessful()){
+                    final String myResponse = response.body().string();
+
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                JSONObject json = new JSONObject(myResponse);
+                                String output = json.get("output").toString();
+
+
+                                if (output.equals("[]")){
+                                    output_json = new JSONObject("{\"lcnno\": \""+ oryorID +"\"}");
+                                }
+                                else{
+                                    output_json = new JSONObject(output.replace("[","")
+                                            .replace("]",""));
+                                }
+                                //Add data to file
+                                addJson(output);
+                                recyclerView.smoothScrollToPosition(0);
+//                                adapter.notifyDataSetChanged();
+                                adapter.notifyItemInserted(0);
+                                spinner.setVisibility(View.GONE);
+                                Log.i("infodata", output_json.toString());
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+            }
+        });
     }
 
     private void initData() {
         String list = loadJSONFromAsset(this);
+        addJson(list);
+        initRecyclerView();
+    }
+
+    private void addJson(String list){
         try {
+            spinner.setVisibility(View.VISIBLE);
             JSONArray obj = new JSONArray(list);
             Log.i("DATA",obj.toString());
 
             for (int i = 0; i < obj.length(); ++i) {
                 JSONObject rec = obj.getJSONObject(i);
-//                JSONObject jsonPage =rec.getJSONObject("page");
-                mMainOryor.add(rec.getString("lcnno"));
-                mMainName.add(rec.getString("productha"));
-                mMainType.add(rec.getString("typepro"));
+                String number = rec.getString("lcnno");
+                String nameth = rec.getString("productha");
+                String type = rec.getString("typepro");
+                String status = rec.getString("cncnm");
+                String requiredString = status.substring(status.indexOf(">(") + 2, status.indexOf(")<"));
+                if(mOryor.size() >= 20){
+                    mOryor.remove(mOryor.size()-1);
+                    adapter.notifyDataSetChanged();
+                }else{
+                    mOryor.add(0,new Oryor(number,nameth,type,requiredString));
+                }
             }
-            initRecyclerView();
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
-
     }
 
     private void initRecyclerView() {
-        RecyclerView recyclerView = findViewById(R.id.recycler_view);
-
-        //Add new var
-        ListAdapter adapter = new ListAdapter(this, mMainOryor, mMainName, mMainType);
-        //End
+        recyclerView = findViewById(R.id.recycler_view);
 
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        new ItemTouchHelper(itemTouchHelperCallBack).attachToRecyclerView(recyclerView);
     }
+
+    ItemTouchHelper.SimpleCallback itemTouchHelperCallBack = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+        @Override
+        public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+            return false;
+        }
+
+        @Override
+        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+            mOryor.remove(viewHolder.getAdapterPosition());
+
+            adapter.notifyDataSetChanged();
+
+        }
+
+    };
 
     @Override
     protected void onPause() {
