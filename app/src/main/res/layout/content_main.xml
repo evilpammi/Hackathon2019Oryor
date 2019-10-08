@@ -86,7 +86,12 @@
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"
             android:layout_height="513dp"
-            android:scrollbars="vertical" />
+            android:scrollbars="vertical"
+
+            android:fadingEdge="vertical"
+            android:fadingEdgeLength="10dp"
+            android:fillViewport="false"
+            android:requiresFadingEdge="vertical"/>
 
     </LinearLayout>
 

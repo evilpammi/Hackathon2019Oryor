@@ -5,8 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -27,6 +30,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -102,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
     private String mCurrentPhotoPath;
 
     private ProgressBar spinner;
+    private final ColorDrawable background = new ColorDrawable(0xFFFF6666);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
         btnSearch = findViewById(R.id.btnSearch);
 
         spinner = findViewById(R.id.progressBar1);
+        spinner.setVisibility(View.INVISIBLE);
 
         initData();
 
@@ -143,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if(!text_input.getText().equals("")){
                     oryorID = text_input.getText().toString();
+                    spinner.setVisibility(View.VISIBLE);
                     makePost();
                 }
             }
@@ -316,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
                             public void onSuccess(FirebaseVisionText texts) {
                                 List<FirebaseVisionText.TextBlock> blocks = texts.getTextBlocks();
                                 if (blocks.size() == 0) {
-                                    showToast("No Oryor found. Please take a picture again!");
+                                    showToast("ไม่พบหมายเลขอย. กรุณาลองใหม่อีกครั้ง");
                                     return ;
                                 }
                                 else{
@@ -338,6 +345,7 @@ public class MainActivity extends AppCompatActivity {
                                         Log.i("info","Found value: " + m.group(0) );
                                         Log.i("info","Found value: " + m.group(1) );
                                         oryorID = m.group(1);
+                                        spinner.setVisibility(View.VISIBLE);
                                         makePost();
                                     }else {
                                         showToast("No Oryor found. Please take a picture again!");
@@ -504,6 +512,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, final Response response) throws IOException {
                 if (response.isSuccessful()){
+                    spinner.setVisibility(View.INVISIBLE);
+
                     final String myResponse = response.body().string();
 
                     MainActivity.this.runOnUiThread(new Runnable() {
@@ -515,19 +525,21 @@ public class MainActivity extends AppCompatActivity {
 
 
                                 if (output.equals("[]")){
-                                    output_json = new JSONObject("{\"lcnno\": \""+ oryorID +"\"}");
+//                                    output_json = new JSONObject("{\"lcnno\": \""+ oryorID +"\"}");
+                                    showToast("ไม่พบรายการที่ค้นหา");
                                 }
                                 else{
                                     output_json = new JSONObject(output.replace("[","")
                                             .replace("]",""));
-                                }
-                                //Add data to file
-                                addJson(output);
-                                recyclerView.smoothScrollToPosition(0);
+                                    //Add data to file
+                                    addJson(output);
+                                    recyclerView.smoothScrollToPosition(0);
 //                                adapter.notifyDataSetChanged();
-                                adapter.notifyItemInserted(0);
-                                spinner.setVisibility(View.GONE);
-                                Log.i("infodata", output_json.toString());
+                                    adapter.notifyItemInserted(0);
+
+                                    Log.i("infodata", output_json.toString());
+                                }
+
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }
@@ -546,7 +558,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void addJson(String list){
         try {
-            spinner.setVisibility(View.VISIBLE);
             JSONArray obj = new JSONArray(list);
             Log.i("DATA",obj.toString());
 
@@ -584,12 +595,28 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
 
+
+
         @Override
         public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
             mOryor.remove(viewHolder.getAdapterPosition());
-
             adapter.notifyDataSetChanged();
+        }
 
+        @Override
+        public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+            super.onChildDraw(c, recyclerView, viewHolder, dX,
+                    dY, actionState, isCurrentlyActive);
+            View itemView = viewHolder.itemView;
+            int backgroundCornerOffset = 20;
+
+            if (dX < 0) { // Swiping to the left
+                background.setBounds(itemView.getRight() + ((int) dX) - backgroundCornerOffset,
+                        itemView.getTop() + 18, itemView.getRight(), itemView.getBottom() - 2);
+            } else { // view is unSwiped
+                background.setBounds(0, 0, 0, 0);
+            }
+            background.draw(c);
         }
 
     };
@@ -675,6 +702,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showToast(String message) {
-        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
     }
+
+
+
 }
